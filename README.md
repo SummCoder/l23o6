@@ -6,32 +6,32 @@
 
 Lab7相关功能：
 - 1.客户
-    - a.:ballot_box_with_check:登录、注册、用户管理 
-    - b.:ballot_box_with_check:查询车票、提供搜索、车票细节
-    - c.:ballot_box_with_check:购买车票、选择等级、数量、座位
+    - a. :ballot_box_with_check: 登录、注册、用户管理 
+    - b. :ballot_box_with_check: 查询车票、提供搜索、车票细节
+    - c. :ballot_box_with_check: 购买车票、选择等级、数量、座位
         - 订单及相关功能实现
         - 用户里程积分实现
         - 里程积分使用
         - 支付策略
-    - d.:ballot_box_with_check:查看订单、展示状态
-    - e.:ballot_box_with_check:退票
+    - d. :ballot_box_with_check: 查看订单、展示状态
+    - e. :ballot_box_with_check: 退票
 - 2.铁路管理员
-    - a.:ballot_box_with_check:登录、注册、用户管理
-    - b.:ballot_box_with_check:管理铁路路线、设置车票信息、更新车次状态
+    - a. :ballot_box_with_check: 登录、注册、用户管理
+    - b. :ballot_box_with_check: 管理铁路路线、设置车票信息、更新车次状态
 - 3.票务员
-    - a.:ballot_box_with_check:登录、注册、用户管理
-    - b.:ballot_box_with_check:售票、退票
-    - c.:negative_squared_cross_mark:改签
+    - a. :ballot_box_with_check: 登录、注册、用户管理
+    - b. :ballot_box_with_check: 售票、退票
+    - c. :negative_squared_cross_mark: 改签
         - 现在才要求，真改不了
 - 4.余票管理员
-    - a.:ballot_box_with_check:登录注册、用户管理
-    - b.:ballot_box_with_check:保留票管理
+    - a. :ballot_box_with_check: 登录注册、用户管理
+    - b. :ballot_box_with_check: 保留票管理
 - 5.非功能性检查点
     - a.分布式部署
         - :ballot_box_with_check:已实现：
             - 对系统加以拆分，将不同功能模块拆分为独立服务
             - 设计服务接口，为每个功能模块设计独立的服务接口，定义接口
-        - :negative_squared_cross_mark:未实现：
+        - :negative_squared_cross_mark:~~未实现~~：暑假学习了云原生相关技术，devops课程第二次实践利用该项目进行docker容器部署，并实现流水线CICD
             - 部署服务
             - 负载均衡
             - 消息队列redis
