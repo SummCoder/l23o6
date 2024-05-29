@@ -1,0 +1,124 @@
+include:
+  - template: SAST.gitlab-ci.yml
+  - template: Dependency-Scanning.gitlab-ci.yml
+
+dependency_scanning:
+  tags: [ docker ]
+  before_script:
+    - chmod +x gradlew
+
+semgrep-sast:
+  tags: [ docker ]
+
+stages:          # List of stages for jobs, and their order of execution
+  - build
+  - test
+  - deploy
+
+build-job: # This job runs in the build stage, which runs first.
+  stage: build
+  script:
+    - docker build -t devops_server .
+    - docker save devops_server -o devops_server.tar
+
+
+# dependency_check:
+#   stage: dependency_check
+#   script:
+#     - chmod +x gradlew
+#     - ./gradlew dependencyCheckAnalyze
+#   tags: [ docker ]
+
+# ......
+unit-test-job: # This job runs in the test stage.
+  stage: test # It only starts when the job in the build stage completes successfully.
+  script:
+    - chmod +x gradlew
+    - ./gradlew test
+
+code-quality:
+  stage: test
+  image: docker:24.0.2
+  allow_failure: true
+  services:
+    - name: 'docker:24.0.2-dind'
+      command: ['--tls=false', '--host=tcp://0.0.0.0:2375']
+  variables:
+    DOCKER_DRIVER: overlay2
+    DOCKER_CERT_PATH: ""
+    DOCKER_TLS_CERTDIR: ""
+    DOCKER_TLS_VERIFY: ""
+    CODE_QUALITY_IMAGE_TAG: "0.96.0"
+    CODE_QUALITY_IMAGE: "$CI_TEMPLATE_REGISTRY_HOST/gitlab-org/ci-cd/codequality:$CODE_QUALITY_IMAGE_TAG"
+    DOCKER_SOCKET_PATH: /var/run/docker.sock
+  needs: []
+  script:
+    - export SOURCE_CODE=$PWD
+    - |
+      if ! docker info &>/dev/null; then
+        if [ -z "$DOCKER_HOST" ] && [ -n "$KUBERNETES_PORT" ]; then
+          export DOCKER_HOST='tcp://localhost:2375'
+        fi
+      fi
+    - | # this is required to avoid undesirable reset of Docker image ENV variables being set on build stage
+      function propagate_env_vars() {
+        CURRENT_ENV=$(printenv)
+
+        for VAR_NAME; do
+          echo $CURRENT_ENV | grep "${VAR_NAME}=" > /dev/null && echo "--env $VAR_NAME "
+        done
+      }
+    - |
+      if [ -n "$CODECLIMATE_REGISTRY_USERNAME" ] && [ -n "$CODECLIMATE_REGISTRY_PASSWORD" ] && [ -n "$CODECLIMATE_PREFIX" ]; then
+        CODECLIMATE_REGISTRY=${CODECLIMATE_PREFIX%%/*}
+        docker login "$CODECLIMATE_REGISTRY" --username "$CODECLIMATE_REGISTRY_USERNAME" --password "$CODECLIMATE_REGISTRY_PASSWORD"
+      fi
+    - docker pull --quiet "$CODE_QUALITY_IMAGE"
+    - |
+      docker run --rm \
+        $(propagate_env_vars \
+          SOURCE_CODE \
+          TIMEOUT_SECONDS \
+          CODECLIMATE_DEBUG \
+          CODECLIMATE_DEV \
+          REPORT_STDOUT \
+          REPORT_FORMAT \
+          ENGINE_MEMORY_LIMIT_BYTES \
+          CODECLIMATE_PREFIX \
+          CODECLIMATE_REGISTRY_USERNAME \
+          CODECLIMATE_REGISTRY_PASSWORD \
+          DOCKER_SOCKET_PATH \
+        ) \
+        --volume "$PWD":/code \
+        --volume "$DOCKER_SOCKET_PATH":/var/run/docker.sock \
+        "$CODE_QUALITY_IMAGE" /code
+    - cat gl-code-quality-report.json
+    - |
+      if grep "issue" gl-code-quality-report.json
+      then
+        echo "Test fail"
+        exit 1
+      else
+        echo "Test success"
+        exit 0
+      fi
+  artifacts:
+    reports:
+      codequality: gl-code-quality-report.json
+    paths:
+      - gl-code-quality-report.json
+    expire_in: 1 week
+  dependencies: []
+  rules:
+    - if: '$CODE_QUALITY_DISABLED'
+      when: never
+    - if: '$CI_COMMIT_TAG || $CI_COMMIT_BRANCH'
+
+deploy-job:      # This job runs in the deploy stage.
+  stage: deploy  # It only runs when *both* jobs in the test stage complete successfully.
+  environment: production
+  script:
+    - sshpass -p "mXjH9oXM" scp -o StrictHostKeyChecking=no devops_server.tar root@172.29.4.100:~
+    - sshpass -p "mXjH9oXM" ssh -o StrictHostKeyChecking=no root@172.29.4.100 'docker container rm -f devops_server; docker load -i devops_server.tar; docker run -d --name devops_server -p 8080:8080 devops_server'
+
+
