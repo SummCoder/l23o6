@@ -35,7 +35,7 @@ Lab7相关功能：
             - 部署服务
             - 负载均衡
             - 消息队列redis
-    - b.:ballot_box_with_check:安全、信息保护、加密
+    - b. :ballot_box_with_check:安全、信息保护、加密
     - c.响应较快
         - :ballot_box_with_check:将系统按照功能拆分成多个服务
         - :ballot_box_with_check:代码优化：对系统的关键代码进行性能优化，比如减少循环嵌套、减少数据库访问次数、避免重复计算等
